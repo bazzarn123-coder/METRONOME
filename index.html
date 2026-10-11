@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en" class="h-[100dvh]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Maestro - Vintage Metronome & Rhythm Game</title>
+    <!-- Favicon embedded for browser address bar -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23d4af37' d='M12 2L2 22h20L12 2zm0 4l7.5 14h-15L12 6z'/></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #12100e;
+            color: #e5e5d8;
+            height: 100dvh;
+            max-height: 100dvh;
+        }
+        .vintage-title {
+            font-family: 'Cinzel', serif;
+        }
+        .serif-text {
+            font-family: 'Playfair Display', serif;
+        }
+        .wood-texture {
+            background: linear-gradient(135deg, #3b2314 0%, #29180d 50%, #1d1008 100%);
+            box-shadow: inset 0 2px 10px rgba(255,255,255,0.08), 0 20px 40px rgba(0,0,0,0.7);
+        }
+        .brass-accent {
+            background: linear-gradient(135deg, #ffd700 0%, #d4af37 50%, #aa8c2c 100%);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.6);
+        }
+        .brass-border {
+            border: 2px solid #d4af37;
+        }
+        .brass-text {
+            color: #d4af37;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+        /* Pyramidal Metronome shape styling */
+        .pyramid-container {
+            clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%);
+            background: linear-gradient(180deg, #4a2c17 0%, #2c1a0e 100%);
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.8), 0 15px 35px rgba(0,0,0,0.6);
+            border-bottom: 6px solid #1a0f08;
+        }
+        .pendulum-swing {
+            transform-origin: top center;
+            will-change: transform;
+        }
+        .glass-panel {
+            background: rgba(30, 20, 15, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+        }
+        input[type=range] {
+            accent-color: #d4af37;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between overflow-x-hidden overflow-y-auto">
+
+    <header class="w-full py-3 px-4 sm:px-6 glass-panel border-b border-[#d4af37]/30 flex flex-wrap items-center justify-between z-20 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-full brass-accent flex items-center justify-center shadow-lg">
+                <svg class="w-5 h-5 text-[#1a0f08]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L2 22h20L12 2zm0 4l7.5 14h-15L12 6z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="vintage-title text-lg sm:text-xl font-bold brass-text tracking-widest">MAESTRO</h1>
+                <p class="text-[10px] sm:text-xs text-[#b8a078] tracking-wider uppercase">Vintage Metronome & Rhythm Arcade</p>
+            </div>
+        </div>
+
+        <!-- Mode Selector Tabs -->
+        <div class="flex bg-[#1a0f08] p-1 rounded-xl border border-[#d4af37]/40 mt-2 sm:mt-0">
+            <button id="tab-metronome" onclick="switchMode('metronome')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-300 bg-[#d4af37] text-[#1a0f08] shadow">
+                Metronome
+            </button>
+            <button id="tab-game" onclick="switchMode('game')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-300 text-[#b8a078] hover:text-[#ffd700]">
+                Rhythm Game
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-3 sm:py-4 flex flex-col items-center justify-center">
+
+        <!-- METRONOME VIEW -->
+        <div id="view-metronome" class="w-full grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 items-center">
+            
+            <!-- Left Column: Visual Metronome Instrument -->
+            <div class="lg:col-span-5 flex flex-col items-center justify-center relative">
+                
+                <!-- Top-Right Quick Start/Stop Button -->
+                <button id="btn-top-toggle" onclick="toggleMetronome()" class="absolute top-0 right-2 sm:right-6 px-3 py-1.5 rounded-lg brass-accent text-[#1a0f08] font-bold vintage-title text-xs shadow-md hover:opacity-95 transition flex items-center space-x-1.5 z-10">
+                    <svg id="top-icon-play" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <span id="btn-top-text">START</span>
+                </button>
+
+                <div class="relative w-56 sm:w-64 h-[340px] sm:h-[380px] pyramid-container flex flex-col items-center pt-6 pb-4 relative overflow-hidden shadow-2xl border-t-2 border-[#633c1f] mt-8 sm:mt-0">
+                    
+                    <!-- Decorative Brass Badge -->
+                    <div class="w-14 h-7 brass-accent rounded-sm flex items-center justify-center shadow-md mb-4 border border-[#997a15]">
+                        <span class="vintage-title text-[10px] font-bold text-[#1a0f08]">MAESTRO</span>
+                    </div>
+
+                    <!-- Tempo Scale Markings -->
+                    <div class="absolute inset-y-14 w-full flex flex-col justify-between items-center pointer-events-none opacity-40 text-[9px] brass-text font-mono">
+                        <div class="flex w-28 justify-between"><span>200</span><span>200</span></div>
+                        <div class="flex w-24 justify-between"><span>160</span><span>160</span></div>
+                        <div class="flex w-20 justify-between"><span>120</span><span>120</span></div>
+                        <div class="flex w-16 justify-between"><span>80</span><span>80</span></div>
+                        <div class="flex w-12 justify-between"><span>40</span><span>40</span></div>
+                    </div>
+
+                    <!-- Swinging Pendulum -->
+                    <div id="pendulum-container" class="absolute top-10 h-[280px] sm:h-[310px] w-10 flex justify-center pendulum-swing" style="transform: rotate(0deg);">
+                        <!-- Vertical Steel Rod -->
+                        <div class="w-1 h-full brass-accent rounded-full shadow-md relative flex justify-center">
+                            <!-- Draggable Brass Weight / Bob -->
+                            <div id="pendulum-weight" 
+                                 class="absolute w-8 h-10 sm:w-9 sm:h-11 brass-accent rounded-md cursor-pointer flex items-center justify-center shadow-2xl border border-[#fff2b2] hover:scale-105 transition-transform"
+                                 style="top: 50%; transform: translateY(-50%);"
+                                 title="Drag weight up/down to adjust tempo">
+                                <div class="w-5 h-1 bg-[#4a2c17]/60 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Glass Window cutout / Bezel -->
+                    <div class="absolute bottom-3 w-36 h-10 bg-black/40 rounded-lg border border-[#d4af37]/30 flex items-center justify-center backdrop-blur-sm">
+                        <span id="beat-counter" class="vintage-title text-lg text-[#ffd700] tracking-widest">1</span>
+                    </div>
+                </div>
+
+                <!-- Beat Indicator Lights -->
+                <div id="beat-lights" class="flex space-x-2 mt-4">
+                    <!-- Dynamic lights generated by JS -->
+                </div>
+            </div>
+
+            <!-- Right Column: Controls Panel -->
+            <div class="lg:col-span-7 glass-panel p-4 sm:p-6 rounded-2xl shadow-2xl flex flex-col space-y-4 sm:space-y-5">
+                <div class="flex items-center justify-between border-b border-[#d4af37]/20 pb-3">
+                    <h2 class="vintage-title text-lg sm:text-xl font-bold brass-text">Precision Controls</h2>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" id="status-dot"></span>
+                        <span class="text-xs text-[#b8a078] uppercase font-semibold" id="status-text">Ready</span>
+                    </div>
+                </div>
+
+                <!-- BPM Display & Slider -->
+                <div class="flex flex-col space-y-2">
+                    <div class="flex justify-between items-end">
+                        <label class="text-xs sm:text-sm font-medium text-[#b8a078] uppercase tracking-wider">Tempo (BPM)</label>
+                        <div class="flex items-baseline space-x-1">
+                            <span id="bpm-display" class="vintage-title text-3xl sm:text-4xl font-extrabold text-[#ffd700]">120</span>
+                            <span class="text-xs text-[#b8a078]">BPM</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 sm:space-x-3">
+                        <button onclick="adjustBpm(-5)" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl brass-accent text-[#1a0f08] font-bold text-sm sm:text-base shadow hover:opacity-90 active:scale-95 transition">-5</button>
+                        <button onclick="adjustBpm(-1)" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl brass-accent text-[#1a0f08] font-bold text-sm sm:text-base shadow hover:opacity-90 active:scale-95 transition">-1</button>
+                        <input type="range" id="bpm-slider" min="40" max="208" value="120" class="flex-1 h-2 bg-[#29180d] rounded-lg appearance-none cursor-pointer">
+                        <button onclick="adjustBpm(1)" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl brass-accent text-[#1a0f08] font-bold text-sm sm:text-base shadow hover:opacity-90 active:scale-95 transition">+1</button>
+                        <button onclick="adjustBpm(5)" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl brass-accent text-[#1a0f08] font-bold text-sm sm:text-base shadow hover:opacity-90 active:scale-95 transition">+5</button>
+                    </div>
+                </div>
+
+                <!-- Time Signature & Subdivisions Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Time Signature -->
+                    <div class="flex flex-col space-y-1.5">
+                        <label class="text-xs sm:text-sm font-medium text-[#b8a078] uppercase tracking-wider">Time Signature</label>
+                        <select id="time-signature" class="bg-[#1a0f08] border border-[#d4af37]/40 rounded-xl px-3 py-2.5 text-sm text-[#ffd700] font-semibold focus:outline-none focus:border-[#ffd700]">
+                            <option value="2/4">2 / 4 Time</option>
+                            <option value="3/4">3 / 4 Time</option>
+                            <option value="4/4" selected>4 / 4 Time</option>
+                            <option value="6/8">6 / 8 Time</option>
+                        </select>
+                    </div>
+
+                    <!-- Subdivisions / Precision -->
+                    <div class="flex flex-col space-y-1.5">
+                        <label class="text-xs sm:text-sm font-medium text-[#b8a078] uppercase tracking-wider">Subdivision Precision</label>
+                        <select id="subdivision" class="bg-[#1a0f08] border border-[#d4af37]/40 rounded-xl px-3 py-2.5 text-sm text-[#ffd700] font-semibold focus:outline-none focus:border-[#ffd700]">
+                            <option value="1" selected>Quarter Notes (♩)</option>
+                            <option value="2">Eighth Notes (♪)</option>
+                            <option value="3">Triplets ( 3 )</option>
+                            <option value="4">Sixteenth Notes (♬)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Action Buttons: Start/Stop & Tap Tempo -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <button id="btn-toggle" onclick="toggleMetronome()" class="w-full py-3.5 rounded-xl brass-accent text-[#1a0f08] font-bold vintage-title tracking-wider text-sm sm:text-base shadow-xl hover:opacity-95 active:scale-98 transition flex items-center justify-center space-x-2">
+                        <svg id="icon-play" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <span id="btn-toggle-text">START METRONOME</span>
+                    </button>
+                    <button id="btn-tap" onclick="tapTempo()" class="w-full py-3.5 rounded-xl bg-[#29180d] border-2 border-[#d4af37] text-[#ffd700] font-bold vintage-title tracking-wider text-sm sm:text-base shadow-xl hover:bg-[#3b2314] active:scale-98 transition">
+                        TAP TEMPO
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RHYTHM PRECISION GAME VIEW (Hidden by default) -->
+        <div id="view-game" class="w-full hidden flex flex-col items-center">
+            <div class="w-full max-w-3xl glass-panel p-4 sm:p-6 rounded-2xl shadow-2xl flex flex-col space-y-4 sm:space-y-5">
+                <!-- Game Header & Scoreboard -->
+                <div class="flex flex-wrap items-center justify-between border-b border-[#d4af37]/20 pb-3 gap-3">
+                    <div>
+                        <h2 class="vintage-title text-xl font-bold brass-text">Rhythm Precision Arcade</h2>
+                        <p class="text-[11px] text-[#b8a078]">Tap in sync with the beat. Hit on target for high score streaks!</p>
+                    </div>
+                    <div class="flex items-center space-x-4 sm:space-x-6">
+                        <div class="text-center">
+                            <span class="text-[10px] text-[#b8a078] block">SCORE</span>
+                            <span id="game-score" class="vintage-title text-xl sm:text-2xl text-[#ffd700] font-bold">0</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="text-[10px] text-[#b8a078] block">COMBO</span>
+                            <span id="game-combo" class="vintage-title text-xl sm:text-2xl text-emerald-400 font-bold">0x</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="text-[10px] text-[#b8a078] block">ACCURACY</span>
+                            <span id="game-accuracy" class="vintage-title text-xl sm:text-2xl text-cyan-400 font-bold">100%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rhythm Visualizer Lane -->
+                <div class="relative w-full h-32 sm:h-36 bg-[#1a0f08] rounded-xl border border-[#d4af37]/40 overflow-hidden flex items-center justify-center">
+                    <!-- Target Hit Zone -->
+                    <div class="absolute left-1/2 -translate-x-1/2 w-16 sm:w-20 h-full border-x-2 border-dashed border-[#ffd700]/60 bg-[#ffd700]/10 flex items-center justify-center">
+                        <span class="text-[9px] brass-text uppercase tracking-widest opacity-60">TARGET</span>
+                    </div>
+
+                    <!-- Moving Beat Markers Container -->
+                    <div id="game-track" class="absolute inset-0 pointer-events-none"></div>
+
+                    <!-- Floating feedback text container -->
+                    <div id="feedback-container" class="absolute inset-0 flex items-center justify-center pointer-events-none z-10"></div>
+                </div>
+
+                <!-- Game Controls & Instructions -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <div class="flex flex-col">
+                            <label class="text-[11px] text-[#b8a078] uppercase">Game Tempo</label>
+                            <span id="game-bpm-display" class="vintage-title text-lg text-[#ffd700]">100 BPM</span>
+                        </div>
+                        <input type="range" id="game-bpm-slider" min="60" max="180" value="100" class="w-32 sm:w-36 h-2 bg-[#29180d] rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <div class="flex space-x-3 w-full sm:w-auto">
+                        <button id="btn-start-game" onclick="toggleGame()" class="flex-1 sm:flex-none px-6 py-3 rounded-xl brass-accent text-[#1a0f08] font-bold vintage-title text-sm tracking-wider shadow-lg hover:opacity-95 transition">
+                            START GAME
+                        </button>
+                        <button onclick="triggerTapAction()" class="flex-1 sm:flex-none px-8 py-3 rounded-xl bg-[#29180d] border-2 border-[#ffd700] text-[#ffd700] font-bold vintage-title text-sm tracking-wider shadow-lg hover:bg-[#3b2314] active:scale-95 transition">
+                            TAP / SPACE
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="w-full py-2 sm:py-3 text-center text-[10px] sm:text-xs text-[#b8a078]/70 border-t border-[#d4af37]/10 shrink-0">
+        Maestro Vintage Metronome & Rhythm Studio • by BAZZARN
+    </footer>
+
+    <script>
+        let audioCtx = null;
+        let isRunning = false;
+        let currentBpm = 120;
+        let timeSignature = 4;
+        let subdivision = 1;
+        let currentBeat = 0;
+        let currentSubdivisionStep = 0;
+        let timerId = null;
+        let nextNoteTime = 0.0;
+        let scheduleAheadTime = 0.1;
+        let lookahead = 25.0;
+        
+        let animationFrameId = null;
+        let tapTimes = [];
+
+        let isGameRunning = false;
+        let gameScore = 0;
+        let gameCombo = 0;
+        let totalHits = 0;
+        let perfectHits = 0;
+        let gameBpm = 100;
+        
+        let activeNotes = [];
+        let noteSpawnInterval = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playClickSound(isAccent, isSubdivision = false) {
+            if (!audioCtx) return;
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+
+            const now = audioCtx.currentTime;
+
+            if (isAccent && !isSubdivision) {
+                osc.frequency.setValueAtTime(1200, now);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.03);
+                gain.gain.setValueAtTime(1.0, now);
+            } else if (!isSubdivision) {
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(250, now + 0.03);
+                gain.gain.setValueAtTime(0.7, now);
+            } else {
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.02);
+                gain.gain.setValueAtTime(0.3, now);
+            }
+
+            filter.type = 'bandpass';
+            filter.frequency.value = 1000;
+            filter.Q.value = 1.5;
+
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.04);
+        }
+
+        function switchMode(mode) {
+            const metroView = document.getElementById('view-metronome');
+            const gameView = document.getElementById('view-game');
+            const tabMetro = document.getElementById('tab-metronome');
+            const tabGame = document.getElementById('tab-game');
+
+            if (mode === 'metronome') {
+                metroView.classList.remove('hidden');
+                gameView.classList.add('hidden');
+                tabMetro.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-300 bg-[#d4af37] text-[#1a0f08] shadow";
+                tabGame.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-300 text-[#b8a078] hover:text-[#ffd700]";
+                if (isGameRunning) toggleGame();
+            } else {
+                metroView.classList.add('hidden');
+                gameView.classList.remove('hidden');
+                tabGame.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-300 bg-[#d4af37] text-[#1a0f08] shadow";
+                tabMetro.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-300 text-[#b8a078] hover:text-[#ffd700]";
+                if (isRunning) toggleMetronome();
+            }
+        }
+
+        function updateBpm(newBpm) {
+            currentBpm = Math.max(40, Math.min(208, newBpm));
+            document.getElementById('bpm-display').innerText = currentBpm;
+            document.getElementById('bpm-slider').value = currentBpm;
+            
+            const weight = document.getElementById('pendulum-weight');
+            const percentage = ((currentBpm - 40) / (208 - 40)) * 75 + 10;
+            weight.style.top = percentage + '%';
+        }
+
+        function adjustBpm(amount) {
+            updateBpm(currentBpm + amount);
+        }
+
+        document.getElementById('bpm-slider').addEventListener('input', (e) => {
+            updateBpm(parseInt(e.target.value));
+        });
+
+        document.getElementById('time-signature').addEventListener('change', (e) => {
+            timeSignature = parseInt(e.target.value.split('/')[0]);
+            currentBeat = 0;
+            buildBeatLights();
+        });
+
+        document.getElementById('subdivision').addEventListener('change', (e) => {
+            subdivision = parseInt(e.target.value);
+        });
+
+        function buildBeatLights() {
+            const container = document.getElementById('beat-lights');
+            container.innerHTML = '';
+            for (let i = 0; i < timeSignature; i++) {
+                const dot = document.createElement('div');
+                dot.id = `beat-light-${i}`;
+                dot.className = `w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border border-[#d4af37]/40 bg-[#1a0f08] transition-all duration-150 ${i === 0 ? 'ring-2 ring-[#ffd700]' : ''}`;
+                container.appendChild(dot);
+            }
+        }
+        buildBeatLights();
+
+        function highlightBeatLight(beatIndex) {
+            for (let i = 0; i < timeSignature; i++) {
+                const dot = document.getElementById(`beat-light-${i}`);
+                if (dot) {
+                    if (i === beatIndex) {
+                        dot.className = "w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-[#ffd700] shadow-lg shadow-[#ffd700]/50 scale-125 transition-all duration-100";
+                    } else {
+                        dot.className = "w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border border-[#d4af37]/40 bg-[#1a0f08] transition-all duration-150";
+                    }
+                }
+            }
+            document.getElementById('beat-counter').innerText = beatIndex + 1;
+        }
+
+        function nextNote() {
+            const secondsPerBeat = 60.0 / currentBpm;
+            const subdivisionsPerBeat = subdivision;
+            nextNoteTime += secondsPerBeat / subdivisionsPerBeat;
+
+            currentSubdivisionStep++;
+            if (currentSubdivisionStep >= subdivisionsPerBeat) {
+                currentSubdivisionStep = 0;
+                currentBeat = (currentBeat + 1) % timeSignature;
+            }
+        }
+
+        function scheduleNote(beatNumber, subStep, time) {
+            const isAccent = (beatNumber === 0 && subStep === 0);
+            const isSub = (subStep > 0);
+            const now = audioCtx.currentTime;
+            const delay = (time - now) * 1000;
+
+            setTimeout(() => {
+                if (!isRunning) return;
+                playClickSound(isAccent, isSub);
+                if (subStep === 0) {
+                    highlightBeatLight(beatNumber);
+                }
+            }, Math.max(0, delay));
+        }
+
+        function scheduler() {
+            while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+                scheduleNote(currentBeat, currentSubdivisionStep, nextNoteTime);
+                nextNote();
+            }
+            if (isRunning) {
+                timerId = setTimeout(scheduler, lookahead);
+            }
+        }
+
+        function animatePendulum(timestamp) {
+            if (!isRunning) return;
+            
+            const secondsPerBeat = 60.0 / currentBpm;
+            const progress = (timestamp / 1000) % secondsPerBeat / secondsPerBeat;
+            const angle = Math.sin(progress * Math.PI * 2) * 26;
+            const pendulumContainer = document.getElementById('pendulum-container');
+            if (pendulumContainer) {
+                pendulumContainer.style.transform = `rotate(${angle}deg)`;
+            }
+
+            animationFrameId = requestAnimationFrame(animatePendulum);
+        }
+
+        function toggleMetronome() {
+            initAudio();
+            isRunning = !isRunning;
+            const btnText = document.getElementById('btn-toggle-text');
+            const iconPlay = document.getElementById('icon-play');
+            const btnTopText = document.getElementById('btn-top-text');
+            const topIconPlay = document.getElementById('top-icon-play');
+            const statusText = document.getElementById('status-text');
+            const statusDot = document.getElementById('status-dot');
+
+            if (isRunning) {
+                btnText.innerText = "STOP METRONOME";
+                iconPlay.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+                btnTopText.innerText = "STOP";
+                topIconPlay.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+                statusText.innerText = "Running";
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping";
+
+                currentBeat = 0;
+                currentSubdivisionStep = 0;
+                nextNoteTime = audioCtx.currentTime + 0.05;
+                scheduler();
+                animationFrameId = requestAnimationFrame(animatePendulum);
+            } else {
+                btnText.innerText = "START METRONOME";
+                iconPlay.innerHTML = '<path d="M8 5v14l11-7z"/>';
+                btnTopText.innerText = "START";
+                topIconPlay.innerHTML = '<path d="M8 5v14l11-7z"/>';
+                statusText.innerText = "Ready";
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+
+                clearTimeout(timerId);
+                cancelAnimationFrame(animationFrameId);
+                const pendulumContainer = document.getElementById('pendulum-container');
+                if (pendulumContainer) pendulumContainer.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function tapTempo() {
+            const now = Date.now();
+            tapTimes.push(now);
+            tapTimes = tapTimes.filter(t => now - t < 3000);
+
+            if (tapTimes.length > 1) {
+                let intervals = [];
+                for (let i = 1; i < tapTimes.length; i++) {
+                    intervals.push(tapTimes[i] - tapTimes[i-1]);
+                }
+                const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+                const calculatedBpm = Math.round(60000 / avgInterval);
+                if (calculatedBpm >= 40 && calculatedBpm <= 208) {
+                    updateBpm(calculatedBpm);
+                }
+            }
+        }
+
+        function toggleGame() {
+            initAudio();
+            isGameRunning = !isGameRunning;
+            const btn = document.getElementById('btn-start-game');
+
+            if (isGameRunning) {
+                btn.innerText = "STOP GAME";
+                btn.className = "flex-1 sm:flex-none px-6 py-3 rounded-xl bg-red-900/80 border border-red-500 text-red-200 font-bold vintage-title text-sm tracking-wider shadow-lg transition";
+                gameScore = 0;
+                gameCombo = 0;
+                totalHits = 0;
+                perfectHits = 0;
+                activeNotes = [];
+                updateGameStats();
+                
+                const intervalMs = (60 / gameBpm) * 1000;
+                noteSpawnInterval = setInterval(spawnGameNote, intervalMs);
+            } else {
+                btn.innerText = "START GAME";
+                btn.className = "flex-1 sm:flex-none px-6 py-3 rounded-xl brass-accent text-[#1a0f08] font-bold vintage-title text-sm tracking-wider shadow-lg hover:opacity-95 transition";
+                clearInterval(noteSpawnInterval);
+                document.getElementById('game-track').innerHTML = '';
+            }
+        }
+
+        document.getElementById('game-bpm-slider').addEventListener('input', (e) => {
+            gameBpm = parseInt(e.target.value);
+            document.getElementById('game-bpm-display').innerText = gameBpm + ' BPM';
+            if (isGameRunning) {
+                clearInterval(noteSpawnInterval);
+                const intervalMs = (60 / gameBpm) * 1000;
+                noteSpawnInterval = setInterval(spawnGameNote, intervalMs);
+            }
+        });
+
+        function spawnGameNote() {
+            if (!isGameRunning) return;
+            const track = document.getElementById('game-track');
+            
+            const note = document.createElement('div');
+            note.className = "absolute right-0 w-6 h-12 bg-[#ffd700] rounded-md shadow-lg -translate-y-1/2 top-1/2";
+            track.appendChild(note);
+
+            const noteData = {
+                element: note,
+                position: 0,
+                createdAt: performance.now(),
+                hit: false
+            };
+            activeNotes.push(noteData);
+
+            const travelDuration = 2000;
+            let startTime = performance.now();
+
+            function moveNote(currentTime) {
+                if (!isGameRunning) return;
+                const elapsed = currentTime - startTime;
+                const progress = elapsed / travelDuration;
+
+                if (progress >= 1) {
+                    note.remove();
+                    activeNotes = activeNotes.filter(n => n !== noteData);
+                    if (!noteData.hit) {
+                        handleMiss();
+                    }
+                    return;
+                }
+
+                const currentPos = progress * 100;
+                note.style.right = currentPos + '%';
+                noteData.position = currentPos;
+
+                note.animationFrame = requestAnimationFrame(moveNote);
+            }
+            requestAnimationFrame(moveNote);
+        }
+
+        function triggerTapAction() {
+            if (!isGameRunning) return;
+            playClickSound(true, false);
+
+            const targetPosition = 50;
+            let closestNote = null;
+            let minDistance = Infinity;
+
+            activeNotes.forEach(note => {
+                if (!note.hit) {
+                    const distance = Math.abs(note.position - targetPosition);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestNote = note;
+                    }
+                }
+            });
+
+            let feedback = "MISS";
+            let colorClass = "text-red-400";
+            
+            if (closestNote && minDistance < 15) {
+                closestNote.hit = true;
+                closestNote.element.remove();
+
+                totalHits++;
+                if (minDistance < 4) {
+                    feedback = "PERFECT!";
+                    colorClass = "text-[#ffd700]";
+                    gameScore += 100 * (gameCombo + 1);
+                    gameCombo++;
+                    perfectHits++;
+                } else if (minDistance < 9) {
+                    feedback = "GREAT!";
+                    colorClass = "text-emerald-400";
+                    gameScore += 50 * (gameCombo + 1);
+                    gameCombo++;
+                    perfectHits++;
+                } else {
+                    feedback = "GOOD";
+                    colorClass = "text-cyan-400";
+                    gameScore += 25 * (gameCombo + 1);
+                    gameCombo++;
+                }
+            } else {
+                handleMiss();
+                feedback = "MISS";
+            }
+
+            showFeedback(feedback, colorClass);
+            updateGameStats();
+        }
+
+        function handleMiss() {
+            gameCombo = 0;
+            totalHits++;
+            showFeedback("MISS", "text-red-400");
+            updateGameStats();
+        }
+
+        function showFeedback(text, colorClass) {
+            const feedbackContainer = document.getElementById('feedback-container');
+            const feedbackEl = document.createElement('div');
+            feedbackEl.className = `absolute vintage-title text-xl sm:text-2xl font-extrabold ${colorClass} animate-bounce transition-all duration-300`;
+            feedbackEl.innerText = text;
+            feedbackContainer.appendChild(feedbackEl);
+            setTimeout(() => feedbackEl.remove(), 400);
+        }
+
+        function updateGameStats() {
+            document.getElementById('game-score').innerText = gameScore;
+            document.getElementById('game-combo').innerText = gameCombo + 'x';
+            const acc = totalHits > 0 ? Math.round((perfectHits / totalHits) * 100) : 100;
+            document.getElementById('game-accuracy').innerText = acc + '%';
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (isGameRunning) {
+                    triggerTapAction();
+                } else {
+                    tapTempo();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
